@@ -1,0 +1,21 @@
+tiktoken
+httpx == 0.27.2
+langchain==0.3.27
+langchain-openai==0.3.31
+langchain-community==0.3.27
+langchain-huggingface==0.3.1
+langchain-core==0.3.74
+langchain-chroma==0.2.5
+openai==1.101.0
+sentence-transformers==5.1.0
+python-certifi-win32==1.6.1
+pydantic==2.9.2
+pypdf
+python-multipart
+fastapi
+uvicorn
+python-dotenv
+pdfplumber
+pandas
+unstructured[pdf]
+PyPDF2
