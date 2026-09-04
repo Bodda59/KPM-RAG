@@ -1,5 +1,6 @@
-from services import db_service
-from services import lesson_service
+from llm import get_response
+from services.services import db_service
+from services.services import lesson_service
 from typing import Optional
 from enum import Enum
 from pydantic import BaseModel
@@ -11,13 +12,31 @@ import os
 from os import listdir
 import shutil
 from services.services import PDFToChromaETL
+from typing import List, Literal
+from langchain_ollama import ChatOllama
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+ollama_bearer_token = os.getenv("OLLAMA_API_KEY", "")
+llm_reasoning_gpt_oss = ChatOllama(
+    model="gpt-oss:120b:cloud",
+    base_url="https://api.ollama.com",  # correct cloud API endpoint
+    client_kwargs={
+        "headers": {
+            "Authorization": "Bearer " + ollama_bearer_token 
+        }
+    }
+)
 
 app = FastAPI(title = "KPM-RAG", version = "1.0.0", description = "RAG API")
 
 origins = [
     "http://localhost",
     "http://localhost:4200",
-    "http://0.0.0.0:8080"
+    "http://0.0.0.0:8080",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -158,6 +177,28 @@ def get_chunks(query: str):
         'chunks': chunks,
         'message' : 'Chunks retrieved successfully'
         }
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+@app.post("/chat")
+def chat(req: ChatRequest):
+    latest_user_message = req.messages[-1].content
+
+    # Everything except the newest message becomes the conversation history
+    history_turns = req.messages[:-1]
+    history_text = "\n".join(
+        f"{m.role.capitalize()}: {m.content}" for m in history_turns
+    )
+
+    answer = get_response(latest_user_message, history=history_text)
+    return {"reply": answer}
+
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
